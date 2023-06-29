@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>POS Invoice Maker</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        @media print {
+      /* CSS for print styles */
+    }
+
+    /* Other CSS styles */
+  </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-container">
+                    <h2>Customer Details</h2>
+                    <form id="customerForm">
+                        <div class="form-group">
+                            <label for="orderIDInput">Order ID:</label>
+                            <input type="text" id="orderIDInput" class="form-control" required oninput="updateCustomerDetails()">
+                        </div>
+                        <div class="form-group">
+                            <label for="customerNameInput">Customer Name:</label>
+                            <input type="text" id="customerNameInput" class="form-control" required oninput="updateCustomerDetails()">
+                        </div>
+                        <div class="form-group">
+                            <label for="addressInput">Address:</label>
+                            <input type="text" id="addressInput" class="form-control" required oninput="updateCustomerDetails()">
+                        </div>
+                        <div class="form-group">
+                            <label for="companyNameInput">Company Name:</label>
+                            <input type="text" id="companyNameInput" class="form-control" required oninput="updateCustomerDetails()">
+                        </div>
+                        <div class="form-group">
+                            <label for="logoInput">Company Logo:</label>
+                            <input type="file" id="logoInput" class="form-control" accept="image/*" oninput="updateCustomerDetails()">
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-container">
+                    <h2>Item Details</h2>
+                    <form id="itemForm">
+                        <div class="form-group">
+                            <label for="itemInput">Item:</label>
+                            <input type="text" id="itemInput" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="quantityInput">Quantity:</label>
+                            <input type="number" id="quantityInput" class="form-control" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="priceInput">Price (৳):</label>
+                            <input type="number" id="priceInput" class="form-control" min="0.01" step="0.01" required>
+                        </div>
+                        <button type="button" onclick="addItem()" class="btn btn-primary">Add Item</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="invoice-container">
+            <div class="company-logo">
+                <img id="logoImage" src="" alt="Company Logo">
+            </div>
+            <div class="company-name" id="companyName"></div>
+            <h2>Invoice</h2>
+            <p>Order ID: <span id="orderIDPreview"></span></p>
+            <p>Customer Name: <span id="customerNamePreview"></span></p>
+            <p>Address: <span id="addressPreview"></span></p>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Qty</th>
+                        <th>Price (৳)</th>
+                        <th>Total (৳)</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="invoiceItems">
+                    <!-- Invoice items will be dynamically added here -->
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="3" class="total">Grand Total:</td>
+                        <td id="grandTotal">৳0.00</td>
+                    </tr>
+                </tfoot>
+            </table>
+            <button class="print-button btn btn-success" onclick="printInvoice()">Print Invoice</button>
+        </div>
+    </div>
+    <script>
+    function updateCustomerDetails() {
+        var orderID = document.getElementById("orderIDInput").value;
+        var customerName = document.getElementById("customerNameInput").value;
+        var address = document.getElementById("addressInput").value;
+        var companyName = document.getElementById("companyNameInput").value;
+        var logo = document.getElementById("logoInput").files[0];
+
+        document.getElementById("orderIDPreview").textContent = orderID;
+        document.getElementById("customerNamePreview").textContent = customerName;
+        document.getElementById("addressPreview").textContent = address;
+        document.getElementById("companyName").textContent = companyName;
+
+        if (logo) {
+            var reader = new FileReader();
+            reader.onload = function(event) {
+                document.getElementById("logoImage").src = event.target.result;
+            };
+            reader.readAsDataURL(logo);
+        } else {
+            document.getElementById("logoImage").src = "";
+        }
+    }
+
+
+    function addItem() {
+        var invoiceItems = document.getElementById("invoiceItems");
+        var itemInput = document.getElementById("itemInput").value;
+        var quantityInput = document.getElementById("quantityInput").value;
+        var priceInput = document.getElementById("priceInput").value;
+
+        var itemRow = document.createElement("tr");
+        itemRow.innerHTML = `
+        <td>${itemInput}</td>
+        <td>${quantityInput}</td>
+        <td>৳${priceInput}</td>
+        <td></td>
+        <td>
+          <button type="button" onclick="removeItem(this)" class="btn btn-danger">Remove</button>
+        </td>
+      `;
+
+        invoiceItems.appendChild(itemRow);
+        updateTotals();
+
+        // Clear item details inputs
+        document.getElementById("itemInput").value = "";
+        document.getElementById("quantityInput").value = 1;
+        document.getElementById("priceInput").value = "";
+    }
+
+    function removeItem(button) {
+        var row = button.closest("tr");
+        row.parentNode.removeChild(row);
+        updateTotals();
+    }
+
+    function updateTotals() {
+        var rows = document.getElementById("invoiceItems").getElementsByTagName("tr");
+        var grandTotal = 0;
+        for (var i = 0; i < rows.length; i++) {
+            var quantity = rows[i].getElementsByTagName("td")[1].textContent;
+            var price = rows[i].getElementsByTagName("td")[2].textContent.replace("৳", "");
+            var total = quantity * price;
+            rows[i].getElementsByTagName("td")[3].textContent = "৳" + total.toFixed(2);
+            grandTotal += total;
+        }
+        document.getElementById("grandTotal").textContent = "৳" + grandTotal.toFixed(2);
+    }
+
+    function printInvoice() {
+        var customerName = document.getElementById("customerNameInput").value;
+        var address = document.getElementById("addressInput").value;
+        var companyName = document.getElementById("companyNameInput").value;
+        var orderID = document.getElementById("orderIDInput").value;
+        var logo = document.getElementById("logoInput").files[0];
+
+        var printWindow = window.open("", "_blank");
+        printWindow.document.open();
+        printWindow.document.write("<html><head><title>Print Invoice</title></head><body>");
+        printWindow.document.write('<div class="invoice-container" style="width: 58mm; margin: 0; padding: 0; font-size: 12px;">');
+        printWindow.document.write('<div class="company-logo" style="text-align: center; margin-bottom: 10px;">');
+        if (logo) {
+            var reader = new FileReader();
+            reader.onloadend = function() {
+                printWindow.document.write('<img src="' + reader.result + '" alt="Company Logo" style="max-width: 100%; height: auto;">');
+                printWindow.document.write('<h2 style="font-size: 14px; margin-top: 5px; margin-bottom: 5px;">Invoice</h2>');
+                printWindow.document.write('<p style="margin: 0;">Order ID: ' + orderID + '</p>');
+                printWindow.document.write('<p style="margin: 0;">Customer Name: ' + customerName + '</p>');
+                printWindow.document.write('<p style="margin: 0;">Address: ' + address + '</p>');
+                printWindow.document.write('<table style="width: 100%; margin-top: 10px; border-collapse: collapse;">');
+                printWindow.document.write('<thead style="border-bottom: 1px solid black;"><tr><th style="text-align: left;">Item</th><th style="text-align: right;">Qty</th><th style="text-align: right;">Price (৳)</th><th style="text-align: right;">Total (৳)</th></tr></thead>');
+                printWindow.document.write('<tbody>');
+
+                var rows = document.getElementById("invoiceItems").getElementsByTagName("tr");
+                for (var i = 0; i < rows.length; i++) {
+                    var columns = rows[i].getElementsByTagName("td");
+                    printWindow.document.write('<tr>');
+                    printWindow.document.write('<td style="text-align: left; border-bottom: 1px solid black;">' + columns[0].textContent + '</td>');
+                    printWindow.document.write('<td style="text-align: right; border-bottom: 1px solid black;">' + columns[1].textContent + '</td>');
+                    printWindow.document.write('<td style="text-align: right; border-bottom: 1px solid black;">' + columns[2].textContent + '</td>');
+                    printWindow.document.write('<td style="text-align: right; border-bottom: 1px solid black;">' + columns[3].textContent + '</td>');
+                    printWindow.document.write('</tr>');
+                }
+
+                printWindow.document.write('</tbody>');
+                printWindow.document.write('<tfoot>');
+                printWindow.document.write('<tr><td colspan="3" style="text-align: right; padding-top: 5px; padding-bottom: 5px;">Grand Total:</td><td style="text-align: right; border-top: 1px solid black; padding-top: 5px; padding-bottom: 5px;">' + document.getElementById("grandTotal").textContent + '</td></tr>');
+                printWindow.document.write('</tfoot>');
+                printWindow.document.write('</table>');
+                printWindow.document.write('</div></div></body></html>');
+                printWindow.document.close();
+                printWindow.print();
+            };
+            reader.readAsDataURL(logo);
+        } else {
+            printWindow.document.write('<h2 style="font-size: 14px; text-align: center; margin-top: 0;">Invoice</h2>');
+            printWindow.document.write('<p style="text-align: center; margin: 0;">Order ID: ' + orderID + '</p>');
+            printWindow.document.write('<p style="text-align: center; margin: 0;">Customer Name: ' + customerName + '</p>');
+            printWindow.document.write('<p style="text-align: center; margin-bottom: 10px;">Address: ' + address + '</p>');
+            printWindow.document.write('<table style="width: 100%; margin-bottom: 10px; border-collapse: collapse;">');
+            printWindow.document.write('<thead style="border-bottom: 1px solid black;"><tr><th style="text-align: left;">Item</th><th style="text-align: right;">Qty</th><th style="text-align: right;">Price (৳)</th><th style="text-align: right;">Total (৳)</th></tr></thead>');
+            printWindow.document.write('<tbody>');
+
+            var rows = document.getElementById("invoiceItems").getElementsByTagName("tr");
+            for (var i = 0; i < rows.length; i++) {
+                var columns = rows[i].getElementsByTagName("td");
+                printWindow.document.write('<tr>');
+                printWindow.document.write('<td style="text-align: left; border-bottom: 1px solid black;">' + columns[0].textContent + '</td>');
+                printWindow.document.write('<td style="text-align: right; border-bottom: 1px solid black;">' + columns[1].textContent + '</td>');
+                printWindow.document.write('<td style="text-align: right; border-bottom: 1px solid black;">' + columns[2].textContent + '</td>');
+                printWindow.document.write('<td style="text-align: right; border-bottom: 1px solid black;">' + columns[3].textContent + '</td>');
+                printWindow.document.write('</tr>');
+            }
+
+            printWindow.document.write('</tbody>');
+            printWindow.document.write('<tfoot>');
+            printWindow.document.write('<tr><td colspan="3" style="text-align: right; padding-top: 5px; padding-bottom: 5px;">Grand Total:</td><td style="text-align: right; border-top: 1px solid black; padding-top: 5px; padding-bottom: 5px;">' + document.getElementById("grandTotal").textContent + '</td></tr>');
+            printWindow.document.write('</tfoot>');
+            printWindow.document.write('</table>');
+            printWindow.document.write('</div></div></body></html>');
+            printWindow.document.close();
+            printWindow.print();
+        }
+    }
+    </script>
+</body>
+
+</html>
